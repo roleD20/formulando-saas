@@ -1,7 +1,3 @@
-import { GetProjectContent } from "@/actions/form" // Wait, I need to create a getter action or fetch directly?
-// Better to fetch directly in server component if possible, or use an action. 
-// I'll create a getter in actions/form.ts first or just do it here if I have supabase client.
-// Let's use supabase client directly here since it's a server component.
 
 import { FormElements } from "@/components/builder/form-elements"
 import { FormElementInstance } from "@/context/builder-context"
