@@ -8,6 +8,9 @@ module.exports = {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: ['var(--font-dm-sans)', 'sans-serif'],
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -47,6 +50,17 @@ module.exports = {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
+  			purple: {
+  				900: '#662D91',
+  				800: '#7B19C1',
+  				700: '#9444E2',
+  				600: '#A665E6',
+  				500: '#B37CEA',
+  				400: '#C295EE',
+  				300: '#D1AEF2',
+  				200: '#E8D6F8',
+  				50: '#F5EDFC',
+  			},
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

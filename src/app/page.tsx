@@ -1,25 +1,33 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { Navbar } from "@/components/landing/navbar"
+import { Hero } from "@/components/landing/hero"
+import { PartnersSection } from "@/components/landing/partners-section"
+import { StatsSection } from "@/components/landing/stats-section"
+import { FeaturesSection } from "@/components/landing/features-section"
+import { ToolsSection } from "@/components/landing/tools-section"
+import { TeamworkSection } from "@/components/landing/teamwork-section"
+import { ContentManagementSection } from "@/components/landing/content-management-section"
+import { TemplatesSection } from "@/components/landing/templates-section"
+import { TestimonialsSection } from "@/components/landing/testimonials-section"
+import { FAQSection } from "@/components/landing/faq-section"
+import { CTASection } from "@/components/landing/cta-section"
+import { Footer } from "@/components/landing/footer"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-24 text-center space-y-6">
-      <div className="space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-          Formu
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-[600px] mx-auto">
-          Crie formulários e páginas de captura incríveis em minutos.
-        </p>
-      </div>
-      <div className="flex gap-4">
-        <Button asChild size="lg">
-          <Link href="/login">Entrar</Link>
-        </Button>
-        <Button variant="outline" size="lg" asChild>
-          <Link href="/signup">Criar Conta</Link>
-        </Button>
-      </div>
-    </div>
+    <main className="min-h-screen">
+      <Navbar />
+      <Hero />
+      <PartnersSection />
+      <StatsSection />
+      <FeaturesSection />
+      <ToolsSection />
+      <TeamworkSection />
+      <ContentManagementSection />
+      <TemplatesSection />
+      <TestimonialsSection />
+      <FAQSection />
+      <CTASection />
+      <Footer />
+    </main>
   )
 }
