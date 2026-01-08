@@ -47,6 +47,23 @@ export async function deleteProject(id: string) {
     revalidatePath("/dashboard")
 }
 
+export async function updateFormSettings(id: string, settings: any) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error("User not found")
+
+    const { error } = await supabase
+        .from("projects")
+        .update({ settings })
+        .eq("id", id)
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    revalidatePath(`/builder/${id}`)
+}
+
 export async function submitForm(formUrl: string, content: string) {
     const supabase = await createClient()
 
@@ -99,7 +116,7 @@ export async function getTemplates() {
     return data || []
 }
 
-export async function generateFormWithAI(prompt: string) {
+export async function generateFormWithAI(prompt: string, currentForm?: FormElementInstance[]) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -107,42 +124,40 @@ export async function generateFormWithAI(prompt: string) {
         return { success: false, error: "Usuário não autenticado" }
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-        // Fallback or error if no key
-        console.warn("GOOGLE_API_KEY not found. Using partial mock for demonstration purposes if needed, or failing.");
-        return { success: false, error: "Configuração de IA ausente no servidor." }
+        return { success: false, error: "Configuração de IA (OpenAI) ausente no servidor." }
     }
 
     try {
-        const { GoogleGenerativeAI } = await import("@google/generative-ai");
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const OpenAI = (await import("openai")).default;
+        const openai = new OpenAI({ apiKey });
 
-        const systemPrompt = `
-        You are a specialized form generator assistant.
-        Your goal is to create a valid JSON structure for a web form based on the user's description.
-        
-        The Output must be a purely VALID JSON array of objects. Do not include markdown formatting like \`\`\`json \`\`\`.
-        
-        The available field types are:
+        const isEditing = currentForm && currentForm.length > 0;
+        let systemPrompt = "";
+
+        const fieldDefinitions = `
+        The available field types are (use these EXACT keys):
         - "TextField": Short text input
-        - "TitleField": Section title
-        - "ParagraphField": Static text description
-        - "SubTitleField": Static subtitle
-        - "SeparatorField": horizontal line
-        - "SpacerField": vertical space
         - "NumberField": Numeric input
         - "TextArea": Long text input
-        - "DateField": Date picker
-        - "SelectField": Dropdown menu
-        - "CheckboxField": Single checkbox
+        - "TitleField": Section title
+        - "ParagraphField": Static text description
+        - "Checkbox": Checkbox group (requires options)
+        - "Select": Dropdown menu (requires options)
+        - "RadioGroup": Radio buttons (requires options)
+        - "NameField": Full name input
         - "EmailField": Email validation
-        - "PhoneField": text input with phone mask
-        - "NameField": text input specialized for names
-        - "StarRatingField": Star rating input
-        - "ImageUploadField": Image upload (only if requested)
-
+        - "PhoneField": Phone number mask
+        - "UrlField": Website URL
+        - "DateField": Date picker
+        - "AddressField": Address group (Zip, Street, etc.)
+        - "FileField": File upload
+        - "StarRatingField": 5-star rating
+        - "ToggleField": Yes/No switch
+        - "SeparatorField": Horizontal line
+        - "SpacerField": Vertical space
+        
         Each object in the array represents a field and must follow this structure:
         {
           "type": "FieldType",
@@ -154,29 +169,71 @@ export async function generateFormWithAI(prompt: string) {
           }
         }
         
-        For "TitleField", "SubTitleField", "ParagraphField", use the "title" or "text" attribute in extraAttributes instead of label/helperText/required/placeHolder as appropriate for the content.
-        For "SelectField", include "options": ["Option 1", "Option 2"] in extraAttributes.
-
-        Rules:
-        1. Always start with a "TitleField" summarizing the form purpose.
-        2. Always add a "ParagraphField" with a brief description if context allows.
-        3. Use "NameField", "EmailField" for contact info.
-        4. Be creative but practical and conversion-focused.
-        5. Return ONLY the JSON array.
+        Special attributes:
+        - For "TitleField" and "ParagraphField", use "title" or "text" instead of label/placeholder.
+        - For "Checkbox", "Select", "RadioGroup", include "options": ["Option 1", "Option 2"] in extraAttributes.
         `;
 
-        const result = await model.generateContent(systemPrompt + "\nUser Request: " + prompt);
-        const responseText = result.response.text();
+        if (isEditing) {
+            systemPrompt = `
+            You are a specialized form editor assistant.
+            Your goal is to MODIFY an existing web form based on the user's request.
+            
+            Current Form Structure (JSON):
+            ${JSON.stringify(currentForm)}
+
+            ${fieldDefinitions}
+
+            Rules for EDITING:
+            1. Analyze the User Request to understand what needs to change (add, remove, edit, or reorder fields).
+            2. Return the COMPLETE, VALID JSON array representing the new state of the form.
+            3. Do NOT just return the new fields. Return the WHOLE form with changes applied.
+            4. Maintain existing field attributes unless explicitly asked to change them.
+            5. If adding new fields, follow the field structure rules strictly.
+            6. Return ONLY the JSON array.
+            `;
+        } else {
+            systemPrompt = `
+            You are a specialized form generator assistant.
+            Your goal is to create a valid JSON structure for a web form based on the user's description.
+            
+            The Output must be a purely VALID JSON array of objects. Do not include markdown formatting like \`\`\`json \`\`\`.
+            
+            ${fieldDefinitions}
+            
+            Rules:
+            1. Always start with a "TitleField".
+            2. Use "NameField" and "EmailField" for contact forms.
+            3. Be concise and conversion-oriented.
+            4. Return ONLY the JSON array.
+            `;
+        }
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini", // Using a fast, capable model
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.7,
+        });
+
+        const responseText = response.choices[0].message.content || "[]";
 
         // Clean up markdown code blocks if the model puts them
         const cleanedText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         const generatedElements = JSON.parse(cleanedText);
 
-        // Post-process to ensure IDs and valid structure
+        // If editing, we try to preserve IDs of existing elements if they are unchanged in the JSON,
+        // but the LLM might have messed with them.
+        // A simple strategy is: If the LLM returns an ID that exists, keep it. If it's new (or the LLM generated a random one), ensure it's valid.
+        // Actually, we should just entrust the LLM to return the IDs if we passed them.
+        // But to be safe, let's just make sure every element has an ID.
+
         const elements: FormElementInstance[] = generatedElements.map((el: any) => ({
             ...el,
-            id: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+            id: el.id || `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         }));
 
         return {
@@ -187,13 +244,12 @@ export async function generateFormWithAI(prompt: string) {
         console.error("Error generating form with AI:", error)
         return {
             success: false,
-            error: "Erro ao gerar formulário. Tente novamente."
+            error: "Erro ao gerar formulário com OpenAI. Tente novamente."
         }
     }
 }
 
 function extractTitle(prompt: string): string {
-    // Simple extraction - take first sentence or first 50 chars
     const sentences = prompt.split(/[.!?]/)
     if (sentences[0]) {
         return sentences[0].trim().slice(0, 50)

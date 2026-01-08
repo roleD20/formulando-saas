@@ -30,11 +30,105 @@ export type FormElementType =
     | "ParagraphField"
     | "SeparatorField"
     | "SpacerField"
+    | "RichTextField"
 
 export type FormElementInstance = {
     id: string
     type: FormElementType
     extraAttributes?: Record<string, any>
+}
+
+export type FormSettings = {
+    general: {
+        name: string;
+        description: string;
+        successMessage: string;
+        redirectUrl: string;
+        afterSubmission: "message" | "redirect";
+    };
+    design: {
+        buttonText: string;
+        theme: {
+            page: {
+                backgroundColor: string;
+                textColor: string;
+            };
+            inputs: {
+                backgroundColor: string;
+                textColor: string;
+                borderColor: string;
+                borderRadius: number;
+            };
+            buttons: {
+                backgroundColor: string;
+                textColor: string;
+                borderRadius: number;
+            };
+            labels: {
+                textColor: string;
+            };
+        };
+        branding: boolean;
+    };
+    integrations: {
+        webhooks: {
+            url: string;
+            enabled: boolean;
+        }[];
+    };
+    advanced: {
+        notificationEmail: string;
+        notificationEnabled: boolean;
+        limitResponses: boolean;
+        maxResponses: number | undefined;
+        passwordEnabled: boolean;
+        password?: string;
+        closeDate?: Date;
+    };
+}
+
+export const defaultSettings: FormSettings = {
+    general: {
+        name: "Formulário Sem Título",
+        description: "",
+        successMessage: "Obrigado! Sua resposta foi enviada com sucesso.",
+        redirectUrl: "",
+        afterSubmission: "message",
+    },
+    design: {
+        buttonText: "Enviar Formulário",
+        theme: {
+            page: {
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+            },
+            inputs: {
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                borderColor: "#e2e8f0",
+                borderRadius: 4,
+            },
+            buttons: {
+                backgroundColor: "#2563EB",
+                textColor: "#ffffff",
+                borderRadius: 4,
+            },
+            labels: {
+                textColor: "#000000",
+            },
+        },
+        branding: true,
+    },
+    integrations: {
+        webhooks: [],
+    },
+    advanced: {
+        notificationEmail: "",
+        notificationEnabled: false,
+        limitResponses: false,
+        maxResponses: undefined,
+        passwordEnabled: false,
+    },
 }
 
 type BuilderContextType = {
@@ -45,13 +139,39 @@ type BuilderContextType = {
     selectedElement: FormElementInstance | null
     setSelectedElement: React.Dispatch<React.SetStateAction<FormElementInstance | null>>
     updateElement: (id: string, element: FormElementInstance) => void
+    settings: FormSettings
+    updateSettings: (newSettings: Partial<FormSettings>) => void
 }
 
 const BuilderContext = createContext<BuilderContextType | null>(null)
 
-export function BuilderProvider({ children, defaultElements = [] }: { children: ReactNode, defaultElements?: FormElementInstance[] }) {
+export function BuilderProvider({ children, defaultElements = [], defaultSettings: preloadedSettings }: { children: ReactNode, defaultElements?: FormElementInstance[], defaultSettings?: FormSettings }) {
     const [elements, setElements] = useState<FormElementInstance[]>(defaultElements)
     const [selectedElement, setSelectedElement] = useState<FormElementInstance | null>(null)
+
+    // Deep merge preloadedSettings with defaultSettings to ensure all properties exist
+    const [settings, setSettings] = useState<FormSettings>(() => {
+        const safeS = (preloadedSettings || {}) as Partial<FormSettings>;
+        return {
+            ...defaultSettings,
+            ...safeS,
+            general: { ...defaultSettings.general, ...(safeS.general || {}) },
+            design: {
+                ...defaultSettings.design,
+                ...(safeS.design || {}),
+                theme: {
+                    ...defaultSettings.design.theme,
+                    ...(safeS.design?.theme || {}),
+                    page: { ...defaultSettings.design.theme.page, ...(safeS.design?.theme?.page || {}) },
+                    inputs: { ...defaultSettings.design.theme.inputs, ...(safeS.design?.theme?.inputs || {}) },
+                    buttons: { ...defaultSettings.design.theme.buttons, ...(safeS.design?.theme?.buttons || {}) },
+                    labels: { ...defaultSettings.design.theme.labels, ...(safeS.design?.theme?.labels || {}) },
+                }
+            },
+            integrations: { ...defaultSettings.integrations, ...(safeS.integrations || {}) },
+            advanced: { ...defaultSettings.advanced, ...(safeS.advanced || {}) },
+        };
+    })
 
     const addElement = (index: number, element: FormElementInstance) => {
         setElements((prev) => {
@@ -78,6 +198,13 @@ export function BuilderProvider({ children, defaultElements = [] }: { children: 
         }
     }
 
+    const updateSettings = (newSettings: Partial<FormSettings>) => {
+        setSettings((prev) => ({
+            ...prev,
+            ...newSettings
+        }))
+    }
+
     return (
         <BuilderContext.Provider
             value={{
@@ -88,6 +215,8 @@ export function BuilderProvider({ children, defaultElements = [] }: { children: 
                 selectedElement,
                 setSelectedElement,
                 updateElement,
+                settings,
+                updateSettings
             }}
         >
             {children}

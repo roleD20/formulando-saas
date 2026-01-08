@@ -1,5 +1,20 @@
-import { Type, Hash, AlignLeft, CheckSquare, List, LucideIcon, SeparatorHorizontal, Heading1, Pilcrow, CircleDot, User, Mail, Phone, Link as LinkIcon, Image as ImageIcon, Video, Calendar, CalendarClock, CalendarDays, MapPin, UploadCloud, PenTool, Star, ToggleLeft, ShieldCheck } from "lucide-react"
-import { MediaUpload } from "./properties/media-upload"
+import { Type, Hash, AlignLeft, CheckSquare, List, LucideIcon, SeparatorHorizontal, Heading1, Heading2, Pilcrow, CircleDot, User, Mail, Phone, Link as LinkIcon, Image as ImageIcon, Video, Calendar, CalendarClock, CalendarDays, MapPin, UploadCloud, PenTool, Star, ToggleLeft, ShieldCheck, HelpCircle, GripHorizontal, Bold, Italic, Underline, AlignCenter, Maximize2, Palette, List as ListIcon } from "lucide-react"
+
+import React, { useState, useRef } from "react"
+// ... imports remain same ...
+// ... imports
+import { useBuilder } from "@/context/builder-context"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
+// Import custom OptionsEditor
+import { OptionsEditor } from "./properties/options-editor"
+// Import RadioGroup related
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
+import { Button } from "@/components/ui/button"
+
 import { FormElementType } from "@/context/builder-context"
 
 export type FormElement = {
@@ -30,17 +45,6 @@ type FormElementsType = {
     [key in FormElementType]: FormElement
 }
 
-
-import { useBuilder } from "@/context/builder-context"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
-// Import custom OptionsEditor
-import { OptionsEditor } from "./properties/options-editor"
-// Import RadioGroup related (using absolute path to avoid build error? No, relative is fine if correct)
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-
 // Reusable Properties Component wrapper to include OptionsEditor
 function PropertiesComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
     const { updateElement } = useBuilder()
@@ -56,42 +60,56 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
     }
 
     return (
-        <div className="flex flex-col gap-4 w-full">
-            <div className="flex flex-col gap-2">
-                <Label>Rótulo (Label)</Label>
-                <Input
-                    placeholder="Rótulo do campo"
-                    value={elementInstance.extraAttributes?.label}
-                    onChange={(e) => setExtraAttributes("label", e.target.value)}
-                    onKeyDown={(e) => e.stopPropagation()}
-                />
+        <div className="flex flex-col gap-5 w-full">
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <Type className="h-3 w-3" /> Rótulo (Label)
+                    </Label>
+                    <Input
+                        className="h-9"
+                        placeholder="Rótulo do campo"
+                        value={elementInstance.extraAttributes?.label || ""}
+                        onChange={(e) => setExtraAttributes("label", e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <GripHorizontal className="h-3 w-3" /> Placeholder
+                    </Label>
+                    <Input
+                        className="h-9"
+                        placeholder="Placeholder"
+                        value={elementInstance.extraAttributes?.placeHolder || ""}
+                        onChange={(e) => setExtraAttributes("placeHolder", e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <HelpCircle className="h-3 w-3" /> Texto de Ajuda
+                    </Label>
+                    <Input
+                        className="h-9"
+                        placeholder="Texto de ajuda"
+                        value={elementInstance.extraAttributes?.helperText || ""}
+                        onChange={(e) => setExtraAttributes("helperText", e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+
+                    />
+                </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-                <Label>Placeholder</Label>
-                <Input
-                    placeholder="Placeholder"
-                    value={elementInstance.extraAttributes?.placeHolder}
-                    onChange={(e) => setExtraAttributes("placeHolder", e.target.value)}
-                    onKeyDown={(e) => e.stopPropagation()}
-                />
-            </div>
+            <div className="h-px bg-muted" />
 
-            <div className="flex flex-col gap-2">
-                <Label>Texto de Ajuda</Label>
-                <Input
-                    placeholder="Texto de ajuda"
-                    value={elementInstance.extraAttributes?.helperText}
-                    onChange={(e) => setExtraAttributes("helperText", e.target.value)}
-                    onKeyDown={(e) => e.stopPropagation()}
-                />
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3 shadow-sm">
                 <div className="space-y-0.5">
-                    <Label>Obrigatório</Label>
-                    <div className="text-[0.8rem] text-muted-foreground">
-                        O usuário deve preencher este campo.
+                    <Label className="text-sm font-semibold text-foreground">Obrigatório</Label>
+                    <div className="text-[0.7rem] text-muted-foreground">
+                        Impedir envio vazio
                     </div>
                 </div>
                 <Switch
@@ -127,28 +145,37 @@ const TextFieldFormElement: FormElement = {
         label: "Texto",
     },
     designerComponent: ({ elementInstance }) => (
-        <div className="flex flex-col gap-2 w-full pointer-events-none">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <div className="flex flex-col gap-2 w-full pointer-events-none p-2 relative group bg-background/40 hover:bg-background/80 transition-colors rounded-lg">
+            <div className="absolute inset-0 bg-transparent" /> {/* Click overlay handled by parent but visual containment helps */}
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground/90">
                 {elementInstance.extraAttributes?.label}
-                {elementInstance.extraAttributes?.required && "*"}
+                {elementInstance.extraAttributes?.required && <span className="text-destructive ml-1">*</span>}
             </label>
-            <input className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" readOnly disabled placeholder={elementInstance.extraAttributes?.placeHolder} />
+            <input
+                className="flex h-10 w-full rounded-md border-input bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/50 border shadow-sm transition-all"
+                readOnly
+                disabled
+                placeholder={elementInstance.extraAttributes?.placeHolder}
+            />
             {elementInstance.extraAttributes?.helperText && (
-                <p className="text-[0.8rem] text-muted-foreground">{elementInstance.extraAttributes?.helperText}</p>
+                <p className="text-[0.8rem] text-muted-foreground/80">{elementInstance.extraAttributes?.helperText}</p>
             )}
         </div>
     ),
     formComponent: ({ elementInstance }) => {
         const { label, required, placeHolder, helperText } = elementInstance.extraAttributes || {}
         return (
-            <div className="flex flex-col gap-2 w-full mb-4">
-                <label className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", elementInstance.extraAttributes?.error && "text-destructive")}>
+            <div className="flex flex-col gap-2 w-full mb-4 group animate-in fade-in duration-500">
+                <label className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 transition-colors", elementInstance.extraAttributes?.error && "text-destructive")}>
                     {label}
-                    {required && "*"}
+                    {required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 <Input
                     name={elementInstance.id}
-                    className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
+                    className={cn(
+                        "h-10 transition-all focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:border-primary/50",
+                        elementInstance.extraAttributes?.error && "border-destructive focus-visible:ring-destructive/30"
+                    )}
                     placeholder={placeHolder}
                     required={required}
                 />
@@ -933,9 +960,13 @@ const ImageFieldFormElement: FormElement = {
         const { url, altText } = elementInstance.extraAttributes || {}
         if (!url) return null
         return (
-            <div className="w-full flex justify-center mb-6">
+            <div className="w-full flex justify-center mb-6 overflow-hidden rounded-lg bg-muted/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={altText} className="max-w-full h-auto rounded-lg shadow-md" />
+                <img
+                    src={url}
+                    alt={altText}
+                    className="max-w-full h-auto rounded-lg shadow-sm object-contain max-h-[600px]"
+                />
             </div>
         )
     },
@@ -1265,14 +1296,14 @@ const AddressFieldFormElement: FormElement = {
                     {label}
                     {required && "*"}
                 </Label>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                     <Input
                         name={`${elementInstance.id}_street`}
-                        placeholder="Rua"
+                        placeholder="Rua / Avenida"
                         required={required}
                         className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         <Input
                             name={`${elementInstance.id}_number`}
                             placeholder="Número"
@@ -1280,22 +1311,30 @@ const AddressFieldFormElement: FormElement = {
                             className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
                         />
                         <Input
+                            name={`${elementInstance.id}_compl`}
+                            placeholder="Complemento"
+                            className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Input
                             name={`${elementInstance.id}_city`}
                             placeholder="Cidade"
                             required={required}
                             className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
                         />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
                         <Input
                             name={`${elementInstance.id}_state`}
-                            placeholder="Estado"
+                            placeholder="Estado (UF)"
                             required={required}
+                            maxLength={2}
                             className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
                         />
+                    </div>
+                    <div>
                         <Input
                             name={`${elementInstance.id}_zip`}
-                            placeholder="CEP"
+                            placeholder="CEP (00000-000)"
                             required={required}
                             maxLength={9}
                             className={cn(elementInstance.extraAttributes?.error && "border-destructive")}
@@ -1315,6 +1354,173 @@ const AddressFieldFormElement: FormElement = {
         )
     },
     propertiesComponent: PropertiesComponent
+}
+
+// ... (previous code)
+
+// Helper for inserting tags
+const insertAtCursor = (textarea: HTMLTextAreaElement, before: string, after: string = "") => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const beforeText = text.substring(0, start);
+    const selectedText = text.substring(start, end);
+    const afterText = text.substring(end);
+
+    const newText = beforeText + before + selectedText + after + afterText;
+
+    return {
+        value: newText,
+        selectionStart: start + before.length,
+        selectionEnd: end + before.length
+    };
+};
+
+const RichTextEditorModal = ({ value, onChange, isOpen, onOpenChange }: { value: string, onChange: (val: string) => void, isOpen: boolean, onOpenChange: (open: boolean) => void }) => {
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleInsert = (before: string, after: string = "") => {
+        if (!textareaRef.current) return;
+        const result = insertAtCursor(textareaRef.current, before, after);
+        onChange(result.value);
+        setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+                textareaRef.current.setSelectionRange(result.selectionStart, result.selectionEnd);
+            }
+        }, 0);
+    };
+
+
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-6 pointer-events-auto z-[9999]" onPointerDownOutside={(e) => e.preventDefault()}>
+                <DialogHeader>
+                    <DialogTitle>Editor de Conteúdo HTML</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col flex-1 gap-2 min-h-0">
+                    <div className="flex flex-wrap gap-1 p-2 bg-muted rounded-t-lg border border-b-0 items-center">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert("<b>", "</b>")} title="Negrito">
+                            <Bold className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert("<i>", "</i>")} title="Itálico">
+                            <Italic className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert("<u>", "</u>")} title="Sublinhado">
+                            <Underline className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert("<h1>", "</h1>")} title="Título 1">
+                            <Heading1 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert("<h2>", "</h2>")} title="Título 2">
+                            <Heading2 className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert('<div style="text-align: center">', "</div>")} title="Centralizar">
+                            <AlignCenter className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert('<ul>\n  <li>', '</li>\n</ul>')} title="Lista">
+                            <ListIcon className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={() => handleInsert('<span style="color: red">', "</span>")} title="Cor Vermelha">
+                            <Palette className="h-4 w-4" />
+                        </Button>
+
+                        <div className="ml-auto text-xs text-muted-foreground mr-2">
+                            Editor de Código
+                        </div>
+                    </div>
+                    <div className="flex-1 flex flex-col border rounded-b-lg overflow-hidden bg-zinc-950 text-zinc-50 relative">
+                        <textarea
+                            ref={textareaRef}
+                            className="flex-1 w-full p-4 font-mono text-sm resize-none focus:outline-none bg-transparent"
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            placeholder="<div>Escreva seu HTML aqui...</div>"
+                            spellCheck={false}
+                        />
+                    </div>
+                </div>
+                <DialogFooter className="mt-2">
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                    <Button onClick={() => onOpenChange(false)}>Salvar e Fechar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+const RichTextFieldFormElement: FormElement = {
+    type: "RichTextField",
+    construct: (id: string) => ({
+        id,
+        type: "RichTextField",
+        extraAttributes: {
+            label: "Texto Rico (HTML)",
+            content: "<p>Digite seu texto aqui...</p>",
+        },
+    }),
+    designerBtnElement: {
+        icon: Pilcrow,
+        label: "Texto HTML",
+    },
+    designerComponent: ({ elementInstance }) => (
+        <div className="flex flex-col gap-2 w-full">
+            <Label className="text-muted-foreground">Texto HTML</Label>
+            <div
+                className="border rounded-md p-4 bg-background min-h-[60px] prose prose-sm max-w-full dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: elementInstance.extraAttributes?.content }}
+            />
+        </div>
+    ),
+    formComponent: ({ elementInstance }) => {
+        const { content } = elementInstance.extraAttributes || {}
+        return (
+            <div
+                className="w-full mb-4 prose prose-sm max-w-full dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: content }}
+            />
+        )
+    },
+    propertiesComponent: ({ elementInstance }) => {
+        const { updateElement } = useBuilder()
+        const [isEditorOpen, setIsEditorOpen] = useState(false);
+        const { content } = elementInstance.extraAttributes || {};
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="space-y-3">
+                    <Label>Conteúdo</Label>
+                    <div className="border rounded-md p-3 bg-muted/30 text-xs text-muted-foreground max-h-[100px] overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/10 pointer-events-none" />
+                        {content ? (
+                            <span className="opacity-70">{content.substring(0, 100)}...</span>
+                        ) : (
+                            <span className="italic">Sem conteúdo</span>
+                        )}
+                    </div>
+
+                    <Button variant="outline" className="w-full" onClick={() => setIsEditorOpen(true)}>
+                        <Maximize2 className="w-4 h-4 mr-2" />
+                        Abrir Editor HTML
+                    </Button>
+
+                    <RichTextEditorModal
+                        isOpen={isEditorOpen}
+                        onOpenChange={setIsEditorOpen}
+                        value={elementInstance.extraAttributes?.content}
+                        onChange={(content) => updateElement(elementInstance.id, {
+                            ...elementInstance,
+                            extraAttributes: { ...elementInstance.extraAttributes, content }
+                        })}
+                    />
+                </div>
+            </div>
+        )
+    }
 }
 
 const FileFieldFormElement: FormElement = {
@@ -1769,5 +1975,6 @@ export const FormElements: FormElementsType = {
     VerificationField: VerificationFieldFormElement,
     SeparatorField: SeparatorFieldFormElement,
     SpacerField: SpacerFieldFormElement,
+    RichTextField: RichTextFieldFormElement,
 }
 

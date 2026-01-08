@@ -4,21 +4,21 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { X, Send, Sparkles, Loader2, Wand2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-// import { ScrollArea } from "@/components/ui/scroll-area" // Unused in this new design
+import { X, Sparkles, Loader2, Wand2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { generateFormWithAI } from "@/actions/form"
 import { FormElementInstance } from "@/context/builder-context"
 import { toast } from "sonner"
+import { LoadingOverlay } from "@/components/builder/loading-overlay"
 
 interface AIChatProps {
     open: boolean
     onClose: () => void
-    onInsert: (elements: FormElementInstance[]) => void
+    elements: FormElementInstance[]
+    onElementsChange: (elements: FormElementInstance[]) => void
 }
 
-const QUICK_SUGGESTIONS = [
+const QUICK_SUGGESTIONS_CREATE = [
     "Captação de leads",
     "Evento",
     "Vendas",
@@ -27,10 +27,22 @@ const QUICK_SUGGESTIONS = [
     "Cadastro de usuário"
 ]
 
-export function AIChat({ open, onClose, onInsert }: AIChatProps) {
+const QUICK_SUGGESTIONS_EDIT = [
+    "Adicionar campo de telefone",
+    "Mudar título para 'Contato'",
+    "Remover campos opcionais",
+    "Adicionar validação de e-mail",
+    "Simplificar o formulário",
+    "Adicionar pergunta de NPS"
+]
+
+export function AIChat({ open, onClose, elements, onElementsChange }: AIChatProps) {
     const [input, setInput] = useState("")
     const [loading, setLoading] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
+
+    const isEditing = elements.length > 0
+    const suggestions = isEditing ? QUICK_SUGGESTIONS_EDIT : QUICK_SUGGESTIONS_CREATE
 
     useEffect(() => {
         if (open && inputRef.current) {
@@ -45,11 +57,25 @@ export function AIChat({ open, onClose, onInsert }: AIChatProps) {
         setLoading(true)
 
         try {
-            const result = await generateFormWithAI(input.trim())
+            // We pass independent copy of elements to avoid circular references or mutations
+            const currentContext = JSON.parse(JSON.stringify(elements))
+            const result = await generateFormWithAI(input.trim(), currentContext)
 
             if (result.success && result.elements) {
-                onInsert(result.elements)
-                toast.success(`Formulário gerado com ${result.elements.length} campos!`)
+                // Determine if we should append or replace
+                // Logic: The server action now returns the FULL form state if editing, 
+                // or the new form if creating.
+                // Since we passed "currentContext", the server returns the COMPLETE new state.
+                // So we just REPLACE.
+
+                onElementsChange(result.elements)
+
+                if (isEditing) {
+                    toast.success("Formulário atualizado com sucesso!")
+                } else {
+                    toast.success(`Formulário gerado com ${result.elements.length} campos!`)
+                }
+
                 onClose()
                 setInput("")
             } else {
@@ -66,7 +92,8 @@ export function AIChat({ open, onClose, onInsert }: AIChatProps) {
     const handleSuggestionClick = (suggestion: string) => {
         setInput(suggestion)
         if (inputRef.current) {
-            inputRef.current.focus()
+            // Wait for queue
+            setTimeout(() => inputRef.current?.focus(), 0)
         }
     }
 
@@ -75,6 +102,10 @@ export function AIChat({ open, onClose, onInsert }: AIChatProps) {
             e.preventDefault()
             handleSend()
         }
+    }
+
+    if (loading) {
+        return <LoadingOverlay />
     }
 
     if (!open) return null
@@ -95,32 +126,26 @@ export function AIChat({ open, onClose, onInsert }: AIChatProps) {
 
                     <div className="p-1">
                         {/* Suggestions */}
-                        {!loading && (
-                            <div className="px-4 pt-3 pb-2 flex flex-wrap gap-2">
-                                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 mr-1">
-                                    <Sparkles className="h-3 w-3" /> Sugestões:
-                                </span>
-                                {QUICK_SUGGESTIONS.map((suggestion) => (
-                                    <Badge
-                                        key={suggestion}
-                                        variant="secondary"
-                                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all text-xs py-0.5 px-2 bg-muted/50 border-muted-foreground/20"
-                                        onClick={() => handleSuggestionClick(suggestion)}
-                                    >
-                                        {suggestion}
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
+                        <div className="px-4 pt-3 pb-2 flex flex-wrap gap-2">
+                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 mr-1">
+                                <Sparkles className="h-3 w-3" /> {isEditing ? "Sugestões de edição:" : "Sugestões:"}
+                            </span>
+                            {suggestions.map((suggestion) => (
+                                <Badge
+                                    key={suggestion}
+                                    variant="secondary"
+                                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all text-xs py-0.5 px-2 bg-muted/50 border-muted-foreground/20"
+                                    onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                    {suggestion}
+                                </Badge>
+                            ))}
+                        </div>
 
                         {/* Input Area */}
                         <div className="flex items-center gap-3 p-2 pl-4">
                             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-                                {loading ? (
-                                    <Loader2 className="h-5 w-5 text-primary-foreground animate-spin" />
-                                ) : (
-                                    <Wand2 className="h-5 w-5 text-primary-foreground" />
-                                )}
+                                <Wand2 className="h-5 w-5 text-primary-foreground" />
                             </div>
 
                             <Input
@@ -128,28 +153,25 @@ export function AIChat({ open, onClose, onInsert }: AIChatProps) {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder={loading ? "Criando seu formulário..." : "Descreva o formulário... (ex: 'Cadastro de leads para imobiliária')"}
-                                disabled={loading}
+                                placeholder={loading
+                                    ? "Processando..."
+                                    : isEditing
+                                        ? "O que você gostaria de alterar no formulário?"
+                                        : "Descreva o formulário... (ex: 'Cadastro de leads')"
+                                }
                                 className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent text-lg placeholder:text-muted-foreground/50 h-auto py-2"
                             />
 
                             <Button
                                 onClick={handleSend}
-                                disabled={!input.trim() || loading}
+                                disabled={!input.trim()}
                                 size="sm"
                                 className="h-10 px-6 rounded-xl font-semibold shadow-sm transition-all text-background hover:scale-105 active:scale-95"
                             >
-                                {loading ? "Gerando..." : "Criar"}
+                                {isEditing ? "Atualizar" : "Criar"}
                             </Button>
                         </div>
                     </div>
-
-                    {/* Progress indicator line if loading */}
-                    {loading && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted overflow-hidden">
-                            <div className="h-full bg-primary animate-progress-indeterminate origin-left" />
-                        </div>
-                    )}
                 </Card>
             </div>
         </div>

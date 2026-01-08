@@ -11,9 +11,12 @@ import { Loader2 } from "lucide-react"
 interface FormSubmitComponentProps {
     formUrl: string
     content: FormElementInstance[]
+    buttonSettings?: {
+        text: string
+    }
 }
 
-export function FormSubmitComponent({ formUrl, content }: FormSubmitComponentProps) {
+export function FormSubmitComponent({ formUrl, content, buttonSettings }: FormSubmitComponentProps) {
     const [formValues, setFormValues] = useState<Record<string, string>>({})
     const [formErrors, setFormErrors] = useState<Record<string, boolean>>({})
     const [renderKey, setRenderKey] = useState(new Date().getTime()) // To force re-render if needed
@@ -114,11 +117,11 @@ export function FormSubmitComponent({ formUrl, content }: FormSubmitComponentPro
             <div className="mt-8 flex justify-end">
                 <Button
                     type="submit"
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto ui-submit-btn transition-all duration-300"
                     disabled={pending}
                 >
                     {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {pending ? "Enviando..." : "Enviar"}
+                    {pending ? "Enviando..." : (buttonSettings?.text || "Enviar")}
                 </Button>
             </div>
         </form>

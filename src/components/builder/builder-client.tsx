@@ -15,7 +15,7 @@ import { toast } from "sonner"
 
 import { updateProjectContent } from "@/actions/form"
 import { Button } from "@/components/ui/button"
-import { PanelLeftClose, PanelRightClose, PanelLeftOpen, PanelRightOpen } from "lucide-react"
+import { PanelLeftClose, PanelRightClose, PanelLeftOpen, PanelRightOpen, Sparkles } from "lucide-react"
 
 function BuilderPageContent({ project }: { project: any }) {
     const projectId = project.id
@@ -57,14 +57,12 @@ function BuilderPageContent({ project }: { project: any }) {
     }
 
     const handleInsertTemplate = (templateElements: FormElementInstance[]) => {
-        // Add all template elements to the current form
         templateElements.forEach((element, index) => {
             addElement(elements.length + index, element)
         })
     }
 
     const handleInsertAI = (aiElements: FormElementInstance[]) => {
-        // Add all AI-generated elements to the current form
         aiElements.forEach((element, index) => {
             addElement(elements.length + index, element)
         })
@@ -80,8 +78,23 @@ function BuilderPageContent({ project }: { project: any }) {
             <AIChat
                 open={isAIChatOpen}
                 onClose={() => setIsAIChatOpen(false)}
-                onInsert={handleInsertAI}
+                elements={elements}
+                onElementsChange={setElements}
             />
+
+            {/* Floating AI Button (FAB) - Visible only when we have elements and chat is closed */}
+            {elements.length > 0 && !isAIChatOpen && (
+                <div className="fixed bottom-8 right-8 z-50 animate-in fade-in slide-in-from-bottom-5 duration-500">
+                    <Button
+                        onClick={() => setIsAIChatOpen(true)}
+                        size="icon"
+                        className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-r from-primary to-primary/80 hover:scale-110 transition-transform duration-300 border-2 border-white/20"
+                    >
+                        <Sparkles className="h-7 w-7 text-white animate-pulse" />
+                    </Button>
+                </div>
+            )}
+
             <DndContext
                 sensors={sensors}
                 onDragStart={(event) => {
@@ -90,9 +103,6 @@ function BuilderPageContent({ project }: { project: any }) {
                 onDragOver={(event) => {
                     const { active, over } = event
                     if (!over) return
-
-                    const activeId = active.id
-                    const overId = over.id
 
                     const isDesignerBtn = active.data.current?.isDesignerBtn
                     const isDroppingOverDesignerItem = over.data.current?.isDesignerElement
@@ -190,7 +200,7 @@ function BuilderPageContent({ project }: { project: any }) {
                             </Button>
 
                             {isRightSidebarOpen && (
-                                <div className="w-[300px] max-w-[300px] border-l-2 border-muted bg-background h-full overflow-y-auto">
+                                <div className="w-[320px] max-w-[320px] h-full relative">
                                     <PropertiesPanel />
                                 </div>
                             )}
@@ -213,7 +223,6 @@ function BuilderPageContent({ project }: { project: any }) {
 }
 
 export function BuilderClient({ project }: { project: any }) {
-    // Parse content if it's a string (Double JSON encoding fix)
     let defaultElements: FormElementInstance[] = []
 
     if (project.content) {
@@ -225,13 +234,17 @@ export function BuilderClient({ project }: { project: any }) {
                 defaultElements = []
             }
         } else {
-            // Already an object/array
             defaultElements = project.content
         }
     }
 
+    let defaultSettings = undefined;
+    if (project.settings) {
+        defaultSettings = project.settings;
+    }
+
     return (
-        <BuilderProvider defaultElements={defaultElements}>
+        <BuilderProvider defaultElements={defaultElements} defaultSettings={defaultSettings}>
             <BuilderPageContent project={project} />
         </BuilderProvider>
     )
