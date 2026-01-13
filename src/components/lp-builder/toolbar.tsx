@@ -10,6 +10,15 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { LPElement } from "./types"
 import { togglePublish } from "@/app/lp/builder/[id]/actions"
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs"
+import { DialogDescription } from "@/components/ui/dialog"
+import { DomainSettings } from "./settings/domain-settings"
+import { Settings } from "lucide-react"
 
 function generateHTML(elements: LPElement[]): string {
     return elements.map(el => {
@@ -46,7 +55,7 @@ function generateHTML(elements: LPElement[]): string {
 }
 
 export function BuilderToolbar() {
-    const { elements, setMode, mode, saveLP, isSaving, lastSaved, isPublished, setIsPublished, slug, setSlug, projectId, previewDevice, setPreviewDevice, lpName, setLpName } = useLPBuilder()
+    const { elements, setMode, mode, saveLP, isSaving, lastSaved, isPublished, setIsPublished, slug, setSlug, projectId, previewDevice, setPreviewDevice, lpName, setLpName, customDomain } = useLPBuilder()
     const [showSaved, setShowSaved] = useState(false)
     const [isPublishing, setIsPublishing] = useState(false)
     const [showCopied, setShowCopied] = useState(false)
@@ -109,6 +118,36 @@ export function BuilderToolbar() {
                         />
                     </div>
                 </div>
+
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8 ml-2">
+                            <Settings className="h-4 w-4" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-[600px]">
+                        <DialogHeader>
+                            <DialogTitle>Configurações da Página</DialogTitle>
+                            <DialogDescription>
+                                Gerencie as configurações da sua Landing Page.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Tabs defaultValue="domain" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="general" disabled>Geral</TabsTrigger>
+                                <TabsTrigger value="domain">Domínio</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="general">
+                                <div className="py-4 text-center text-muted-foreground text-sm">
+                                    Configurações gerais podem ser editadas diretamento na barra superior (Nome e Slug).
+                                </div>
+                            </TabsContent>
+                            <TabsContent value="domain">
+                                <DomainSettings initialDomain={customDomain} projectId={projectId || ''} />
+                            </TabsContent>
+                        </Tabs>
+                    </DialogContent>
+                </Dialog>
 
                 <div className="flex items-center border rounded-md bg-muted/20 p-1">
                     <Button
@@ -251,6 +290,6 @@ export function BuilderToolbar() {
                     </Button>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

@@ -11,7 +11,7 @@ import { DndContext, DragEndEvent, useSensor, useSensors, MouseSensor, TouchSens
 import { LPElementType, LPElement } from "@/components/lp-builder/types"
 
 function LPBuilderEditor({ project }: { project: Project | LandingPage }) {
-    const { addElement, elements, moveElement, setProjectId, setElements, setSlug, setIsPublished, setLpName } = useLPBuilder()
+    const { addElement, elements, moveElement, setProjectId, setElements, setSlug, setIsPublished, setLpName, setCustomDomain } = useLPBuilder()
 
     // Initialize project ID and load existing content
     React.useEffect(() => {
@@ -20,6 +20,7 @@ function LPBuilderEditor({ project }: { project: Project | LandingPage }) {
         setSlug(project.slug)
         setLpName(project.name)
         setIsPublished(project.is_published)
+        setCustomDomain((project as any).custom_domain || null) // Cast to any because Project type might not have custom_domain yet if shared
         if (project.content && Array.isArray(project.content)) {
             setElements(project.content as LPElement[])
         }

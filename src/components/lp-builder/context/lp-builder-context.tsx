@@ -26,6 +26,8 @@ type LPBuilderContextType = {
     setSlug: (slug: string) => void
     lpName: string
     setLpName: (name: string) => void
+    customDomain: string | null
+    setCustomDomain: (domain: string | null) => void
 
     addElement: (index: number, element: LPElement, parentId?: string) => void
     removeElement: (id: string) => void
@@ -55,6 +57,7 @@ export function LPBuilderProvider({ children }: { children: React.ReactNode }) {
     const [isPublished, setIsPublished] = useState(false)
     const [slug, setSlug] = useState<string | null>(null)
     const [lpName, setLpName] = useState<string>("Landing Page")
+    const [customDomain, setCustomDomain] = useState<string | null>(null)
 
     const addElement = (index: number, element: LPElement, parentId?: string) => {
         setElements((prev) => {
@@ -325,6 +328,8 @@ export function LPBuilderProvider({ children }: { children: React.ReactNode }) {
                 setSlug,
                 lpName,
                 setLpName,
+                customDomain,
+                setCustomDomain,
                 addElement,
                 removeElement,
                 updateElement,
