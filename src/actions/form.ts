@@ -256,3 +256,21 @@ function extractTitle(prompt: string): string {
     }
     return prompt.slice(0, 50)
 }
+
+export async function getFormContent(formId: string) {
+    const supabase = await createClient()
+
+    // Public access to fetch form content (needed for public LP pages)
+    // We select 'content' and 'settings' to render it properly
+    const { data, error } = await supabase
+        .from("projects")
+        .select("content, settings")
+        .eq("id", formId)
+        .single()
+
+    if (error || !data) {
+        return null
+    }
+
+    return data
+}

@@ -12,8 +12,18 @@ import {
 import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Sidebar } from "./sidebar"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 export function Header() {
+    const router = useRouter()
+    const supabase = createClient()
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut()
+        router.push("/login")
+    }
+
     return (
         <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
             <Sheet>
@@ -30,7 +40,7 @@ export function Header() {
 
             <div className="w-full flex-1">
                 {/* Breadcrumb or Search could go here */}
-                <h1 className="text-lg font-semibold md:hidden">Formu</h1>
+                {/* <h1 className="text-lg font-semibold md:hidden">Formu</h1> */}
             </div>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -48,7 +58,9 @@ export function Header() {
                     <DropdownMenuItem>Configurações</DropdownMenuItem>
                     <DropdownMenuItem>Suporte</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">Sair</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+                        Sair
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </header>

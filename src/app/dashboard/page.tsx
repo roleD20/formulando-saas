@@ -11,6 +11,11 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { ProjectList } from "@/components/dashboard/project-list"
+import { Overview } from "@/components/dashboard/overview"
+
+import { cookies } from "next/headers"
+
+// ...
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -20,28 +25,37 @@ export default async function DashboardPage() {
         return <div>Usuário não autenticado</div>
     }
 
-    // Fetch projects
-    // We need to join with workspaces to filter by owner?
-    // Or just fetching projects where workspace->owner_id is user
-    // Simpler: fetch workspaces first then projects? Or relying on RLS?
-    // Let's assume RLS allows selecting projects user has access to.
-    // Ideally we filter by workspace_id if we have multiple workspaces context.
-    // For now, let's fetch all projects for the user's workspaces.
+    const cookieStore = await cookies()
+    const workspaceId = cookieStore.get("formu-workspace-id")?.value
 
-    // Get user's workspace first (single workspace MVP)
+    let activeWorkspaceId = workspaceId
+
+    // Validate if user has access to this workspace or pick default
     const { data: workspaces } = await supabase
         .from("workspaces")
-        .select("id")
-        .eq("owner_id", user.id)
-        .limit(1)
+        .select("id, name")
+        .eq("owner_id", user.id) // Or use workspace_members for shared access
+
+    // If no workspaceId in cookie, or invalid, pick the first one
+    if (!activeWorkspaceId && workspaces && workspaces.length > 0) {
+        activeWorkspaceId = workspaces[0].id
+    }
+
+    // Verify if workspaceId exists in user's workspaces (if cookie was stale/manipulated)
+    if (activeWorkspaceId && workspaces) {
+        const hasAccess = workspaces.some(w => w.id === activeWorkspaceId)
+        if (!hasAccess && workspaces.length > 0) {
+            activeWorkspaceId = workspaces[0].id
+        }
+    }
 
     let projects: any[] = []
 
-    if (workspaces && workspaces.length > 0) {
+    if (activeWorkspaceId) {
         const { data } = await supabase
             .from("projects")
             .select("*, leads(count)")
-            .eq("workspace_id", workspaces[0].id)
+            .eq("workspace_id", activeWorkspaceId)
             .order("created_at", { ascending: false })
 
         if (data) projects = data
@@ -56,13 +70,15 @@ export default async function DashboardPage() {
 
     return (
         <div className="space-y-6">
+
+
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
                 <div className="flex items-center gap-2">
                     <form action={createProject}>
                         <Button>
                             <Plus className="mr-2 h-4 w-4" />
-                            Novo Projeto
+                            Novo Formulário
                         </Button>
                     </form>
                 </div>
@@ -72,7 +88,7 @@ export default async function DashboardPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Total de Projetos
+                            Total de Formulários
                         </CardTitle>
                         <Folder className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
@@ -97,29 +113,94 @@ export default async function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                            Taxa de Conversão
+                        </CardTitle>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            className="h-4 w-4 text-muted-foreground"
+                        >
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                        </svg>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">0%</div>
+                        <p className="text-xs text-muted-foreground">
+                            +0% em relação ao mês passado
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                            Ativos Agora
+                        </CardTitle>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            className="h-4 w-4 text-muted-foreground"
+                        >
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                        </svg>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">0</div>
+                        <p className="text-xs text-muted-foreground">
+                            +0 desde a última hora
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
 
-            {projectsCount === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 md:p-16 animate-in fade-in-50 mt-8">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                        <Folder className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="mt-4 text-xl font-bold">Nenhum projeto ainda</h3>
-                    <p className="mt-2 mb-4 text-center text-sm text-muted-foreground max-w-sm">
-                        Crie seu primeiro formulário ou página de captura para começar a receber leads.
-                    </p>
-                    <form action={createProject}>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Criar Primeiro Projeto
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <Card className="col-span-4">
+                    <CardHeader>
+                        <CardTitle>Visão Geral de Leads</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <Overview />
+                    </CardContent>
+                </Card>
+                <Card className="col-span-3">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Formulários Recentes</CardTitle>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/dashboard/forms">
+                                Ver todos
+                            </Link>
                         </Button>
-                    </form>
-                </div>
-            ) : (
-                <div className="mt-8">
-                    <ProjectList projects={projects} />
-                </div>
-            )}
+                    </CardHeader>
+                    <CardContent>
+                        {projectsCount === 0 ? (
+                            <div className="flex flex-col items-center justify-center text-center py-8">
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Nenhum formulário criado ainda.
+                                </p>
+                            </div>
+                        ) : (
+                            <ProjectList
+                                projects={projects.slice(0, 5)}
+                                initialViewMode="list"
+                                hideViewToggle={true}
+                                hideHeader={true}
+                            />
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     )
 }

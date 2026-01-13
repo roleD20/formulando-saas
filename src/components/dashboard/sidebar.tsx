@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Settings, Plug, Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Users, Settings, Plug, Plus, ChevronLeft, ChevronRight, FileText, Layout } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,12 +13,23 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { BrandSwitcher } from "./brand-switcher"
 
 const sidebarItems = [
     {
-        title: "Projetos",
+        title: "Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
+    },
+    {
+        title: "Formulários", // Previously Projects
+        href: "/dashboard/forms",
+        icon: FileText,
+    },
+    {
+        title: "Landing Pages",
+        href: "/dashboard/lp",
+        icon: Layout,
     },
     {
         title: "Leads",
@@ -84,10 +95,7 @@ export function Sidebar({ className }: SidebarProps) {
                         </div>
                         {isOpen && (
                             <div className="px-2 mb-4">
-                                <div className="text-xs text-muted-foreground font-medium mb-1 px-2 uppercase">Workspace</div>
-                                <div className="bg-card border rounded-md p-2 text-sm font-medium flex items-center justify-between">
-                                    <span>Meu Workspace</span>
-                                </div>
+                                <BrandSwitcher />
                             </div>
                         )}
                         <div className="space-y-1">

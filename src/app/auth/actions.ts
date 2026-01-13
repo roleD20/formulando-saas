@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
 
-export async function login(formData: FormData) {
+export async function login(prevState: any, formData: FormData) {
     const supabase = await createClient()
 
     const email = formData.get('email') as string
@@ -18,14 +18,14 @@ export async function login(formData: FormData) {
 
     if (error) {
         console.error('Login error:', error)
-        return redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        return { error: error.message }
     }
 
     revalidatePath('/', 'layout')
     redirect('/dashboard')
 }
 
-export async function signup(formData: FormData) {
+export async function signup(prevState: any, formData: FormData) {
     const supabase = await createClient()
 
     const email = formData.get('email') as string
@@ -43,9 +43,8 @@ export async function signup(formData: FormData) {
     })
 
     if (error) {
-        return redirect('/signup?error=Could not create user')
+        return { error: error.message }
     }
 
-    revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    return { success: true }
 }

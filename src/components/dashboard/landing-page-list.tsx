@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutGrid, List as ListIcon, MoreVertical, Edit, Eye, Calendar, ExternalLink, Trash2 } from "lucide-react"
+import { LayoutGrid, List as ListIcon, Edit, Eye, Calendar, ExternalLink, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { deleteProject } from "@/actions/form"
+import { deleteLandingPage } from "@/app/dashboard/actions"
 import { toast } from "sonner"
 import {
     AlertDialog,
@@ -22,29 +22,33 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-import { Project } from "@/types"
+export interface LandingPage {
+    id: string
+    name: string
+    slug: string
+    is_published: boolean
+    created_at: string
+    workspace_id: string
+    workspace_name?: string
+}
 
-// ... imports above
-
-// Removed local interface Project
-
-interface ProjectListProps {
-    projects: Project[]
+interface LandingPageListProps {
+    landingPages: LandingPage[]
     initialViewMode?: "grid" | "list"
     hideViewToggle?: boolean
     hideHeader?: boolean
 }
 
-export function ProjectList({ projects, initialViewMode = "grid", hideViewToggle = false, hideHeader = false }: ProjectListProps) {
+export function LandingPageList({ landingPages, initialViewMode = "grid", hideViewToggle = false, hideHeader = false }: LandingPageListProps) {
     const [viewMode, setViewMode] = useState<"grid" | "list">(initialViewMode)
 
-    if (projects.length === 0) return null
+    if (landingPages.length === 0) return null
 
     return (
         <div className="space-y-6">
             {!hideHeader && (
                 <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold">Seus Formulários</h3>
+                    <h3 className="text-xl font-semibold">Suas Landing Pages</h3>
                     {!hideViewToggle && (
                         <div className="flex items-center border rounded-md p-1 bg-muted/20">
                             <Button
@@ -70,14 +74,14 @@ export function ProjectList({ projects, initialViewMode = "grid", hideViewToggle
 
             {viewMode === "grid" ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {projects.map((project) => (
-                        <ProjectCard key={project.id} project={project} />
+                    {landingPages.map((lp) => (
+                        <LPCard key={lp.id} lp={lp} />
                     ))}
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {projects.map((project) => (
-                        <ProjectListItem key={project.id} project={project} />
+                    {landingPages.map((lp) => (
+                        <LPListItem key={lp.id} lp={lp} />
                     ))}
                 </div>
             )}
@@ -85,14 +89,14 @@ export function ProjectList({ projects, initialViewMode = "grid", hideViewToggle
     )
 }
 
-function DeleteProjectButton({ id, name }: { id: string, name: string }) {
+function DeleteLPButton({ id, name }: { id: string, name: string }) {
     const handleDelete = async () => {
         try {
-            await deleteProject(id)
-            toast.success(`Projeto "${name}" excluído`)
+            await deleteLandingPage(id)
+            toast.success(`Landing Page "${name}" excluída`)
         } catch (error) {
             console.error(error)
-            toast.error("Erro ao excluir projeto")
+            toast.error("Erro ao excluir Landing Page")
         }
     }
 
@@ -105,9 +109,9 @@ function DeleteProjectButton({ id, name }: { id: string, name: string }) {
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir Landing Page?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Tem certeza que deseja excluir o projeto &quot;{name}&quot;? Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir "{name}"? Esta ação não pode ser desfeita e a página sairá do ar.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -121,105 +125,103 @@ function DeleteProjectButton({ id, name }: { id: string, name: string }) {
     )
 }
 
-function ProjectCard({ project }: { project: Project }) {
-    const leadsCount = project.leads?.[0]?.count || 0
-
+function LPCard({ lp }: { lp: LandingPage }) {
     return (
-        <Card className="hover:shadow-md transition-shadow group flex flex-col relative">
+        <Card className="hover:shadow-md transition-shadow group flex flex-col relative h-full">
             <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
-                    <CardTitle className="truncate leading-tight text-lg max-w-[calc(100%-30px)]" title={project.name}>
-                        {project.name}
+                    <CardTitle className="truncate leading-tight text-lg max-w-[calc(100%-30px)]" title={lp.name}>
+                        {lp.name}
                     </CardTitle>
                     <div className="absolute right-2 top-2">
-                        <DeleteProjectButton id={project.id} name={project.name} />
+                        <DeleteLPButton id={lp.id} name={lp.name} />
                     </div>
                 </div>
                 <CardDescription className="flex items-center text-xs mt-1">
                     <Calendar className="mr-1 h-3 w-3" />
-                    {formatDistanceToNow(new Date(project.created_at), { addSuffix: true, locale: ptBR })}
+                    {formatDistanceToNow(new Date(lp.created_at), { addSuffix: true, locale: ptBR })}
                 </CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-2 flex-grow">
                 <div className="flex gap-2 items-center justify-between">
-                    <Badge variant={project.is_published ? "default" : "secondary"} className="text-[10px] px-2 py-0.5 h-auto">
-                        {project.is_published ? "Publicado" : "Rascunho"}
+                    <Badge variant={lp.is_published ? "default" : "secondary"} className="text-[10px] px-2 py-0.5 h-auto">
+                        {lp.is_published ? "Publicada" : "Rascunho"}
                     </Badge>
-                    <div className="text-xs text-muted-foreground font-medium">
-                        {leadsCount} {leadsCount === 1 ? 'lead' : 'leads'}
+                    <div className="text-xs text-muted-foreground font-mono truncate max-w-[120px]" title={`/${lp.slug}`}>
+                        /{lp.slug}
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="p-4 pt-0 flex flex-col gap-2">
-                <div className="flex gap-2 w-full">
-                    <Button asChild size="sm" variant="outline" className="flex-1">
-                        <Link href={`/builder/${project.id}`}>
-                            <Edit className="mr-2 h-3.5 w-3.5" />
-                            Editar
-                        </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="secondary" className="flex-1">
-                        <Link href={`/submit/${project.id}`} target="_blank">
-                            <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                            Ver
-                        </Link>
-                    </Button>
-                </div>
-                <Button asChild size="sm" variant="default" className="w-full">
-                    <Link href={`/dashboard/projects/${project.id}/leads`}>
-                        <ListIcon className="mr-2 h-3.5 w-3.5" />
-                        Ver Leads
+            <CardFooter className="p-4 pt-0 grid grid-cols-2 gap-2 mt-auto">
+                <Button asChild size="sm" variant="outline" className="w-full">
+                    <Link href={`/lp/builder/${lp.id}`}>
+                        <Edit className="mr-2 h-3.5 w-3.5" />
+                        Editar
                     </Link>
                 </Button>
+                {lp.is_published ? (
+                    <Button asChild size="sm" variant="secondary" className="w-full">
+                        <Link href={`/lp/${lp.slug}`} target="_blank">
+                            <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                            Visualizar
+                        </Link>
+                    </Button>
+                ) : (
+                    <Button size="sm" variant="ghost" className="w-full" disabled>
+                        <Eye className="mr-2 h-3.5 w-3.5" />
+                        Visualizar
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     )
 }
 
-function ProjectListItem({ project }: { project: Project }) {
-    const leadsCount = project.leads?.[0]?.count || 0
-
+function LPListItem({ lp }: { lp: LandingPage }) {
     return (
         <div className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/10 transition-colors">
             <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center gap-3">
-                    <span className="font-semibold truncate max-w-[200px] md:max-w-md">{project.name}</span>
-                    <Badge variant={project.is_published ? "default" : "secondary"} className="text-[10px] px-2 py-0.5 h-auto">
-                        {project.is_published ? "Publicado" : "Rascunho"}
+                    <span className="font-semibold truncate max-w-[200px] md:max-w-md">{lp.name}</span>
+                    <Badge variant={lp.is_published ? "default" : "secondary"} className="text-[10px] px-2 py-0.5 h-auto">
+                        {lp.is_published ? "Publicada" : "Rascunho"}
                     </Badge>
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground gap-4">
                     <span className="flex items-center">
                         <Calendar className="mr-1 h-3 w-3" />
-                        Criado {formatDistanceToNow(new Date(project.created_at), { addSuffix: true, locale: ptBR })}
+                        Criado {formatDistanceToNow(new Date(lp.created_at), { addSuffix: true, locale: ptBR })}
                     </span>
-                    <span className="font-medium text-foreground">
-                        {leadsCount} {leadsCount === 1 ? 'lead' : 'leads'}
+                    <span className="font-mono">
+                        /{lp.slug}
                     </span>
                 </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
                 <Button asChild size="sm" variant="outline">
-                    <Link href={`/dashboard/projects/${project.id}/leads`}>
-                        <ListIcon className="mr-2 h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Leads</span>
-                    </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                    <Link href={`/builder/${project.id}`}>
+                    <Link href={`/lp/builder/${lp.id}`}>
                         <Edit className="mr-2 h-3.5 w-3.5" />
                         <span className="hidden sm:inline">Editar</span>
                     </Link>
                 </Button>
-                <Button asChild size="sm" variant="ghost">
-                    <Link href={`/submit/${project.id}`} target="_blank">
-                        <ExternalLink className="h-4 w-4" />
+
+                {lp.is_published ? (
+                    <Button asChild size="sm" variant="ghost">
+                        <Link href={`/lp/${lp.slug}`} target="_blank">
+                            <ExternalLink className="h-4 w-4" />
+                            <span className="sr-only">Visualizar</span>
+                        </Link>
+                    </Button>
+                ) : (
+                    <Button size="sm" variant="ghost" disabled>
+                        <Eye className="h-4 w-4 text-muted-foreground" />
                         <span className="sr-only">Visualizar</span>
-                    </Link>
-                </Button>
+                    </Button>
+                )}
+
                 <div className="ml-2">
-                    <DeleteProjectButton id={project.id} name={project.name} />
+                    <DeleteLPButton id={lp.id} name={lp.name} />
                 </div>
             </div>
         </div>
